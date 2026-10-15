@@ -17,7 +17,7 @@ RENDER_MODE:
   "DEPTH" : 深度マップ (手前=白, 奥=黒)。ControlNet 等の depth 入力用
   "COLOR" : EEVEE の簡易カラー (朱→白のグラデーション確認用)
 
-Blender 4.2 以降 (5.x 含む) で動作確認。
+Blender 5.1 で動作確認済み。4.2 以降でも動く想定 (未確認)。
 """
 
 import math
