@@ -36,4 +36,9 @@ blender -b -P s4_torii_run.py -- --mode depth --render
 - 参道のうねり：`CURVE_AMP` / `CURVE_WAVELENGTH`
 - カメラ位置：`shot_pose()` 内の各ショット
 
-`s4_contact_sheet.png` はテストレンダーのコマ（各ショット2枚）。
+### 書き出し済みの動画
+- `S4_grey.mp4` / `S4_grey_letterbox.mp4`：グレーのプリビズ（黒帯なし / 2.39:1 黒帯あり）
+- `S4_depth.mp4`：深度マップ（手前=白, 35m 先=黒）
+- `s4_contact_sheet.png`：テストレンダーのコマ（各ショット2枚）
+
+※ この動画はクラウド環境で Cycles（CPU）を使って 960×540 で書き出したもの。

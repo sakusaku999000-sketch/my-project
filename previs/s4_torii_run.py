@@ -400,7 +400,7 @@ def set_video_output(scene, path):
 
 
 def depth_material():
-    """カメラからの距離を白黒で出す (手前=白, 60m 先=黒)"""
+    """カメラからの距離を白黒で出す (手前=白, 35m 先=黒)"""
     mat = bpy.data.materials.get("M_DepthOverride") or bpy.data.materials.new("M_DepthOverride")
     mat.use_nodes = True
     nt = mat.node_tree
@@ -408,7 +408,7 @@ def depth_material():
     cam = nt.nodes.new("ShaderNodeCameraData")
     rng = nt.nodes.new("ShaderNodeMapRange")
     rng.inputs["From Min"].default_value = 0.5
-    rng.inputs["From Max"].default_value = 60.0
+    rng.inputs["From Max"].default_value = 35.0
     rng.inputs["To Min"].default_value = 1.0
     rng.inputs["To Max"].default_value = 0.0
     emit = nt.nodes.new("ShaderNodeEmission")
@@ -454,6 +454,13 @@ def setup_render(mode):
         set_engine(scene, "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE")
         view_layer.material_override = depth_material()
         setup_world((0, 0, 0))
+        # 色変換 (AgX/Filmic) を切らないと深度の階調が潰れる
+        try:
+            scene.view_settings.view_transform = "Raw"
+        except TypeError:
+            scene.view_settings.view_transform = "Standard"
+        for cam in bpy.data.cameras:   # 深度マップにボケは不要
+            cam.dof.use_dof = False
         set_video_output(scene, OUTPUT_DIR + "S4_depth")
     elif mode == "COLOR":
         set_engine(scene, "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE")
