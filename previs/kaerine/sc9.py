@@ -20,7 +20,7 @@ SHOTS = [
          desc="抱きしめる。泣きながら微笑む二人", lines=[(1.6, "澪", "本当に……帰ってこられたんだね")]),
     dict(id="9-5", dur=4, size="蓮のアップ / 85mm", move="FIX", desc="蓮が口を開く。しかし、声は出ない", lines=[],
          silent=True),
-    dict(id="9-6", dur=5, size="手元アップ / 85mm", move="FIX",
+    dict(id="9-6", dur=5, size="手元アップ / 50mm", move="FIX",
          desc="澪は理解し、蓮の手をそっと握って二回たたく", lines=[(3.4, "澪", "……聞こえてるよ")],
          sfx=[(1.8, "tap"), (2.3, "tap")]),
     dict(id="9-7", dur=4, size="ロング / 24mm", move="クレーンアップ",
