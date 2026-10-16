@@ -90,15 +90,15 @@ def build(tl):
 
     # --- 1-1〜1-2: 並んで歩く
     s, _ = tl.range("1-1")
-    e = F("1-3", 0.6)
-    ren_path = ren.move(s, e, [(0.55, 9), (0.75, 23.6)], "walk")
-    mio_path = mio.move(s, e, [(-0.15, 9), (0.15, 23.9)], "walk",
+    e = F("1-2", 5.9)
+    ren_path = ren.move(s, e, [(1.1, 9), (1.5, 24.0)], "walk")
+    mio_path = mio.move(s, e, [(0.3, 9), (0.5, 23.4), (1.35, 24.9)], "walk",
                         extra=lambda f: dict(head=-0.1, armR=(0.4, 0.4)) if F("1-2", 1.2) < f < F("1-2", 3) else {})
     cams.track("1-1", lambda f, k: (vlerp((0.2, 2, 11), (0.4, 4.5, 1.8), ease(k)), ren_path(f) + Vector((-0.3, 3, 1.0 + 0.5 * (1 - k)))), 24)
     cams.track("1-2", lambda f, k: (ren_path(f) + Vector((-0.4, 3.6, 1.55)), ren_path(f) + Vector((-0.35, 0, 1.45))), 50)
 
     # --- 1-3: 手すりをトン、トン
-    f0 = F("1-3", 0.7)
+    f0 = F("1-3", 0.5)
     ren.key(f0, loc=(1.5, 24), yaw=-math.pi / 2, armR=(0.3, 0.1))
     mio.key(f0, loc=(1.35, 24.9), yaw=-math.pi / 2)
     ren.key(F("1-3", 1.2), armR=(0.95, 0.15))
@@ -127,7 +127,7 @@ def build(tl):
     mio.key(F("1-5", 2.8), armR=(0, 0.08))
     ren.key(F("1-5", 3.2), armR=(0.5, 1.2), yaw=ren.face((0.6, 27.5)))
     ren.key(F("1-5", 4.2), armR=(0, 0.08))
-    cams.static("1-5", (0.85, 22.3, 1.75), (0.75, 27.5, 1.3), 50)
+    cams.static("1-5", (0.8, 21.3, 1.75), (0.75, 27.5, 1.3), 50)
 
     # --- 1-6: 去っていく後ろ姿
     a, _ = tl.range("1-6")

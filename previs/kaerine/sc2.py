@@ -85,14 +85,14 @@ def build(tl):
     for f in frames(1, F("2-2", 0.3)):
         key_tr(phone, f, loc=base + (Vector((0.01 * math.sin(f * 2.3), 0, 0)) if f > F("2-1", 1.0) else Vector()))
     ren.key(F("2-2", 0.0), armR=(0.6, 0.1))
-    ren.key(F("2-2", 0.5), armR=(1.0, 0.1), lean=0.15)
+    ren.key(F("2-2", 0.5), armR=(1.0, 0.1), elbowR=0.2, lean=0.15)
     key_tr(phone, F("2-2", 0.5), loc=base, rot=(0, 0, 0))
-    ear = Vector((0.16, -0.45, 1.12))
-    ren.key(F("2-2", 1.0), armR=(0.9, 0.55), lean=0.0, head=0.05)
-    key_tr(phone, F("2-2", 1.0), loc=ear, rot=(1.4, 0, 0.3))
+    ren.key(F("2-2", 1.0), armR=(1.0, 0.6), elbowR=2.2, lean=0.0, head=0.05)
     ren.key(F("2-3", 2.9), head=0.0)
-    key_tr(phone, F("2-3", 2.9), loc=ear)
-    cams.static("2-1", (2.5, -2.4, 1.7), (0, 0.1, 0.5), 28)
+    # 電話は手に持たせる (手の位置を毎フレーム追う)
+    for f in frames(F("2-2", 0.5) + 2, F("2-3", 2.9)):
+        key_tr(phone, f, loc=ren.hand("R", f) + Vector((0, 0.02, 0.06)), rot=(1.3, 0, 0.4))
+    cams.move("2-1", (2.5, -2.4, 1.7), (0.1, 0.25, 0.45), (1.7, -1.5, 1.3), (0.2, 0.35, 0.42), 28)
     cams.static("2-2", (-0.45, 1.1, 1.2), (0.0, -0.45, 1.0), 50)
     cams.move("2-3", (-0.3, 0.75, 1.15), (0, -0.45, 1.1), (-0.2, 0.4, 1.13), (0, -0.45, 1.1), 85)
 
@@ -104,34 +104,37 @@ def build(tl):
 
     # --- 病室
     head_y = -0.85
-    mio.key(1, loc=(HX, head_y + 1.5, 0.82), yaw=0, pitch=math.pi / 2, armL=(0, 0.15), armR=(0, 0.15))
+    mio.key(1, loc=(HX, head_y + 1.5, 0.82), yaw=0, pitch=math.pi / 2, armL=(-0.05, 0.3), armR=(-0.05, 0.35))
     s, _ = tl.range("2-5")
     ren.key(s, loc=(HX + 2.6, 3.2, 0), **dict(hipz=0, legL=0, legR=0, lean=0, armL=(0, 0.08), armR=(0, 0.08), head=0))
-    ren.move(s, F("2-5", 1.2), [(HX + 2.6, 3.2), (HX + 0.95, 0.4)], "run")
-    bed_side = dict(lean=0.55, hipz=-0.12, head=0.3, armR=(1.05, -0.1), armL=(0.9, -0.15))
-    ren.key(F("2-5", 1.5), yaw=math.pi / 2, **bed_side)
-    mio_hand = dict(armR=(0.15, 0.55))
-    mio.key(F("2-5", 1.5), **mio_hand)
+    ren.move(s, F("2-5", 1.2), [(HX + 2.6, 3.2), (HX + 0.95, -0.2)], "run")
+    bed_side = dict(lean=0.5, hipz=-0.12, head=0.35)
+    hand_m = mio.hand("R", F("2-5", 1.5))  # 澪の手 (シーツの上)
+
+    def hold_hand(f, **pose):  # 蓮が両手で澪の手を包む
+        ren.key(f, **pose)
+        ren.reach(f, "R", hand_m + Vector((0.09, -0.03, 0.0)))
+        ren.reach(f, "L", hand_m + Vector((0.07, 0.07, 0.06)))
+
+    hold_hand(F("2-5", 1.5), yaw=math.pi / 2, **bed_side)
     for t in (2.0, 2.4, 3.6, 4.0):  # 呼びかけで身を乗り出す
-        ren.key(F("2-5", t), lean=0.65 if t in (2.0, 3.6) else 0.5)
+        hold_hand(F("2-5", t), lean=0.62 if t in (2.0, 3.6) else 0.5)
     cams.static("2-5", (HX - 2.6, 2.9, 1.9), (HX + 0.4, -0.2, 0.8), 28)
 
     # 手を二回たたく
     for t in (2.0, 2.5):
-        mio.key(F("2-6", t - 0.15), armR=(0.35, 0.55))
-        mio.key(F("2-6", t), armR=(0.15, 0.55))
-    h = (mio.hand("R", F("2-6", 2.0)) + ren.hand("R", F("2-6", 2.0))) / 2
-    cams.static("2-6", h + Vector((-0.25, -0.95, 0.45)), h, 85)
+        mio.key(F("2-6", t - 0.15), armR=(0.3, 0.35))
+        mio.key(F("2-6", t), armR=(-0.05, 0.35))
+    h = hand_m
+    cams.static("2-6", h + Vector((0.15, -1.0, 0.45)), h, 85)
     ren.key(F("2-7", 0.4), head=0.15)
     hd = ren.head_at(F("2-7", 1.0))
     cams.static("2-7", hd + Vector((-1.2, -0.25, -0.35)), hd, 85)
 
     # 手が落ちる
-    mio.key(F("2-8", 1.0), armR=(0.15, 0.55))
+    mio.key(F("2-8", 1.0), armR=(-0.05, 0.35))
     mio.key(F("2-8", 1.8), armR=(-0.9, 1.57))
-    ren.key(F("2-8", 1.8), armR=(0.5, -0.1))
-    h = mio.hand("R", F("2-8", 2.5))
-    cams.static("2-8", h + Vector((0.6, -1.6, 0.45)), h + Vector((0, 0, 0.2)), 50)
+    cams.static("2-8", h + Vector((0.35, -1.6, 0.5)), h + Vector((0.05, 0, -0.12)), 50)
 
     # 医師たち
     s, e = tl.range("2-9")
@@ -142,7 +145,7 @@ def build(tl):
         st.key(F("2-9", 1.6), yaw=-math.pi / 2, lean=0.4, armL=(1.0, 0), armR=(1.0, 0))
         st.key(F("2-9", 3.6), lean=0.2)
         st.key(F("2-9", 4.0), lean=0.05, head=0.3, armL=(0, 0.08), armR=(0, 0.08))
-    ren.move(F("2-9", 1.0), F("2-9", 2.4), [(HX + 0.95, 0.4), (HX + 1.9, 1.2)], "walk", face=False, swing=0.15,
+    ren.move(F("2-9", 1.0), F("2-9", 2.4), [(HX + 0.95, -0.2), (HX + 1.9, 1.2)], "walk", face=False, swing=0.15,
              extra=lambda f: dict(armR=(1.0, 0.0), armL=(0.8, 0.0), lean=0.2))
     ren.key(F("2-9", 2.6), yaw=math.pi / 2 + 0.3, lean=0.1)
     for t in (3.8, 4.2, 4.6):  # 医師が首を振る

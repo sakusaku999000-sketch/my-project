@@ -88,7 +88,7 @@ def build(tl):
     mio.key(F("8-2", 2.0), head=0.15)
     mio.key(F("8-2", 2.6), head=0.0)
     ren.key(F("8-2", 3.4), lean=0.05)
-    cams.static("8-3", (-1.35, 96.35, 1.62), (0.4, 96, 1.42), 50)
+    cams.static("8-3", (-1.3, 96.8, 1.6), (0.4, 96, 1.42), 50)
 
     # 8-4: 声が金色の鳥になる
     s4, e4 = tl.range("8-4")
@@ -100,12 +100,12 @@ def build(tl):
     for f in frames(s4, e4):
         k = ease((f - s4) / (e4 - s4 - 12)) if f < e4 - 12 else 1.0
         p = path(k)
-        key_tr(bird, f, loc=p, scale=lerp(0.3, 1.8, min(1, k * 3)))
+        key_tr(bird, f, loc=p, scale=lerp(1.0, 4.5, min(1, k * 3)))
         for w, x in wings:
             key_tr(w, f, rot=(0, -x * 0.8 * math.sin(f * 0.9), 0))
         for i, sp in enumerate(trail):
             kk = max(0.0, k - 0.025 * (i + 1))
-            key_tr(sp, f, loc=path(kk) + shake(0.05, f + i), scale=1 - i * 0.08)
+            key_tr(sp, f, loc=path(kk) + shake(0.08, f + i), scale=2.5 * (1 - i * 0.08))
     for o in [bird] + trail:
         visible(o, s4, e4 - 6)
     ren.key(F("8-4", 0.3), head=-0.25, lean=-0.05)
@@ -117,8 +117,11 @@ def build(tl):
 
     # 8-5: 喉に手を当てる
     ren.key(F("8-5", 0.3), head=0.0)
-    ren.key(F("8-5", 1.2), armR=(1.25, -0.55), head=0.3)
-    cams.static("8-5", (0.55, 95.15, 1.3), (-0.4, 96, 1.5), 85)
+    ren.key(F("8-5", 1.2), head=0.2)
+    throat = ren.head_at(F("8-5", 1.2)) + Vector((0.12, 0, -0.13))
+    ren.reach(F("8-5", 1.2), "R", throat)
+    hd = ren.head_at(F("8-5", 2.0)) - Vector((0, 0, 0.1))
+    cams.static("8-5", (0.85, 96.5, hd.z + 0.15), hd, 50)  # 澪の肩越し
 
     # 8-6: 翼を広げ、門が開く
     s6, e6 = tl.range("8-6")
@@ -146,14 +149,16 @@ def build(tl):
     # 8-8: 声が出ない → 水面をトン、トン
     ren.key(F("8-8", 0.2), head=-0.3, lean=-0.1)
     ren.key(F("8-8", 1.2), head=-0.3, lean=-0.1)
-    ren.key(F("8-8", 1.9), loc=(-0.4, 96, 0), hipz=-0.5, legL=-1.45, legR=-1.45, lean=0.75, head=0.2,
-            armR=(1.2, 0.1))
+    # 水面に膝をつき (すねは水面下)、手で水面をトン、トン
+    ren.key(F("8-8", 1.9), loc=(-0.4, 96, 0), rootz=-0.45, legL=0, legR=0, lean=0.55, head=0.25, blend=10)
+    water = Vector((0.1, 96.1, 0.02))
+    ren.reach(F("8-8", 1.9), "R", water + Vector((0, 0, 0.15)))
     for t in (2.5, 3.0):
-        ren.key(F("8-8", t - 0.15), armR=(1.0, 0.1))
-        ren.key(F("8-8", t), armR=(1.25, 0.1))
-        ripple(coll, (-0.4, 96.75, 0), F("8-8", t), 1.6, 5.0, width=0.08)
+        ren.reach(F("8-8", t - 0.15), "R", water + Vector((0, 0, 0.18)))
+        ren.reach(F("8-8", t), "R", water)
+        ripple(coll, water, F("8-8", t), 1.6, 5.0, width=0.08)
     mio.key(F("8-8", 3.8), head=0.2)
-    cams.static("8-8", (3.4, 97.2, 0.45), (-0.2, 97.6, 0.4), 35)
+    cams.static("8-8", (2.1, 94.0, 0.9), (-0.2, 97.2, 0.45), 28)
 
     # 8-9: 手を取り、光へ
     s9, e9 = tl.range("8-9")

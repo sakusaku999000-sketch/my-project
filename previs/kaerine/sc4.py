@@ -151,7 +151,7 @@ def build(tl):
 
     s, _ = tl.range("4-1")
     e = tl.range("4-5")[1]
-    run = ren.move(s, e, path_pts(0, 150), "sprint")
+    run = ren.move(s, e, path_pts(0, 146), "sprint")
 
     def u_of(f):
         return run(f).y
@@ -163,19 +163,19 @@ def build(tl):
                                     16, twist(u_of(f)) * 0.5), 16)
     cams.track("4-4", lambda f, k: (run(f) + T(u_of(f)) * 0.9 + Vector((0, 0, 1.65 + 0.04 * math.sin(f))),
                                     P(u_of(f) + 25, 1.5), lerp(24, 16, ease(k)), twist(u_of(f) + 5)), 24)
-    cams.track("4-5", lambda f, k: (run(f) - T(u_of(f)) * (3 - ease(k)) + Vector((0, 0, 2.5 + 16 * ease(k))),
+    cams.track("4-5", lambda f, k: (run(f) - T(u_of(f)) * (3 - ease(k)) + Vector((0, 0, 3.8 + 15 * ease(k))),
                                     P(u_of(f) + 6 + 14 * ease(k))), 24)
 
     # 4-6: 立ち止まる → 崩落 → 光の門
     s6, e6 = tl.range("4-6")
-    ren.move(s6, F("4-6", 1.0), path_pts(150, 155, 4), "run")
+    ren.move(s6, F("4-6", 1.0), path_pts(146, 148.5, 4), "run")
     ren.key(F("4-6", 1.3), lean=-0.15, armL=(0.6, 0.4), armR=(0.6, 0.4))  # のけぞる
     ren.key(F("4-6", 3.0), lean=0.0, armL=(0, 0.1), armR=(0, 0.1))
-    cams.move("4-6", P(149, 1.4) - N(149) * 1.2, P(166, 3.5), P(150.5, 1.4) - N(150) * 1.1, P(166, 3.8), 28)
+    cams.move("4-6", P(144) + N(144) * 6 + Vector((0, 0, 2.4)), P(153, 1.4), P(145) + N(145) * 5.5 + Vector((0, 0, 2.4)), P(155, 1.8), 28)
 
     # 4-7: 光へ飛び込む
     s7, e7 = tl.range("4-7")
-    run2 = ren.move(s7, F("4-7", 3.0), path_pts(155, GATE_U - 1.5, 10), "sprint")
+    run2 = ren.move(s7, F("4-7", 3.0), path_pts(148.5, GATE_U - 1.5, 10), "sprint")
     jump = ren.move(F("4-7", 3.0), F("4-7", 4.2),
                     [P(GATE_U - 1.5), P(GATE_U - 0.5, 1.6), P(GATE_U + 0.5, 3.0)], "sprint",
                     extra=lambda f: dict(legL=1.0, legR=-0.6, armL=(2.6, 0.2), armR=(2.6, 0.2), lean=0.4))

@@ -28,7 +28,8 @@ SHOTS = [
 ]
 
 SX = 100
-STAND = dict(hipz=0, legL=0, legR=0, lean=0, head=0, armL=(0, 0.08), armR=(0, 0.08), pitch=0, rootz=0)
+STAND = dict(hipz=0, legL=0, legR=0, lean=0, head=0, armL=(0, 0.08), armR=(0, 0.08), elbowL=0.15, elbowR=0.15,
+             pitch=0, rootz=0)
 SIT = dict(hipz=-0.55, legL=1.45, legR=1.45, lean=0.1, pitch=0, rootz=0)
 
 
@@ -67,28 +68,32 @@ def build(tl):
     # 9-4: 抱きしめる
     mio.key(F("9-4", 0.2), loc=(SX + 0.6, 10.3, 0), yaw=math.pi / 2 + 0.3, **SIT, head=0)
     ren.key(F("9-4", 0.2), loc=(SX - 0.15, 10.3, 0), yaw=-math.pi / 2 + 0.3, **SIT, head=0)
-    hug = dict(armL=(1.35, -0.2), armR=(1.35, -0.2), lean=0.25)
+    hug = dict(armL=(1.2, -0.3), armR=(1.2, -0.3), elbowL=0.9, elbowR=0.9, lean=0.25)
     mio.key(F("9-4", 1.0), loc=(SX + 0.45, 10.3, 0), **hug)
     ren.key(F("9-4", 1.0), loc=(SX - 0.0, 10.3, 0), **hug)
-    cams.track("9-4", lambda f, k: (Vector((SX + 0.2 + 2.6 * math.sin(2.4 + k * 0.8), 10.3 - 2.6 * math.cos(2.4 + k * 0.8),
-                                             1.2)), Vector((SX + 0.22, 10.3, 0.85))), 35)
+    cams.track("9-4", lambda f, k: (Vector((SX + 0.22 + 2.2 * math.sin(-0.6 + k * 0.8),
+                                             10.3 - 2.2 * math.cos(-0.6 + k * 0.8), 1.2)),
+                                    Vector((SX + 0.22, 10.3, 0.85))), 35)
 
-    # 9-5: 声が出ない
-    mio.key(F("9-5", 0.2), loc=(SX + 0.65, 10.3, 0), armL=(0.5, 0.1), armR=(0.5, 0.1), lean=0.1)
-    ren.key(F("9-5", 0.2), loc=(SX - 0.15, 10.3, 0), armL=(0.5, 0.1), armR=(0.5, 0.1), lean=0.1)
+    # 9-5: 声が出ない (二人は並んで座り、朝日の方を向く)
+    side = dict(SIT, lean=0.1, head=0, armL=(0.2, 0.15), armR=(0.2, 0.15), elbowL=0.3, elbowR=0.3)
+    ren.key(F("9-5", 0.0), loc=(SX - 0.3, 10.3, 0), yaw=0, **side)
+    mio.key(F("9-5", 0.0), loc=(SX + 0.32, 10.3, 0), yaw=0, **side)
     ren.key(F("9-5", 1.0), head=-0.2)
     ren.key(F("9-5", 2.5), head=-0.1)
     ren.key(F("9-5", 3.5), head=0.25)
-    cams.static("9-5", (SX + 1.1, 9.6, 1.05), (SX - 0.15, 10.3, 1.05), 85)
+    hd = ren.head_at(F("9-5", 1.5))
+    cams.static("9-5", hd + Vector((0.35, 1.2, -0.1)), hd, 85)
 
-    # 9-6: 手をトン、トン
-    mio.key(F("9-6", 0.6), armR=(0.9, -0.2))
+    # 9-6: 地面についた蓮の手を、澪がトン、トン
+    p = Vector((SX + 0.01, 10.45, 0.05))
+    ren.reach(F("9-6", 0.3), "R", p)
+    mio.reach(F("9-6", 0.6), "L", p + Vector((0, 0, 0.07)))
     for t in (1.8, 2.3):
-        mio.key(F("9-6", t - 0.15), armR=(1.05, -0.2))
-        mio.key(F("9-6", t), armR=(0.9, -0.2))
-    ren.key(F("9-6", 0.6), armL=(0.8, -0.1))
-    h = mio.hand("R", F("9-6", 1.0))
-    cams.static("9-6", h + Vector((0.15, -0.45, 0.95)), h, 85)
+        mio.reach(F("9-6", t - 0.15), "L", p + Vector((0, 0, 0.2)))
+        mio.reach(F("9-6", t), "L", p + Vector((0, 0, 0.07)))
+    mio.key(F("9-6", 3.2), head=0.15)
+    cams.static("9-6", p + Vector((0.05, 0.85, 0.75)), p + Vector((0, 0, 0.05)), 50)
 
     # 9-7: 手をつないで朝日の中へ
     s7, e7 = tl.range("9-7")

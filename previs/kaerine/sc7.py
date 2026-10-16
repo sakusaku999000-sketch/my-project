@@ -42,7 +42,8 @@ SHOTS = [
 
 GATE_Y = 104.0
 GATE_S = 6.0
-STAND = dict(hipz=0, legL=0, legR=0, lean=0, head=0, armL=(0, 0.08), armR=(0, 0.08))
+STAND = dict(hipz=0, legL=0, legR=0, lean=0, head=0, armL=(0, 0.08), armR=(0, 0.08), elbowL=0.15, elbowR=0.15,
+             pitch=0, rootz=0)
 
 
 def build_world(tl, coll, sky=HIGAN_SKY):
@@ -134,7 +135,7 @@ def build(tl):
     crow.key(F("7-4", 1.2), peck=0.0)
     crow.key(F("7-4", 3.0), peck=0.25)
     crow.key(F("7-4", 3.8), peck=0.0)
-    cams.static("7-4", (1.2, 3.2, 1.0), (0, 38, 26), 35)
+    cams.static("7-4", (0.9, 2.4, 0.8), (0, 38, 20), 24)
 
     # 7-5: 巨大な波紋と回転する建築
     for t in (0.5, 2.5):
@@ -157,9 +158,9 @@ def build(tl):
     s7, e7 = tl.range("7-7")
     run = run_pair(ren, mio, s7, e7, [(0, 22), (0, 27), (-2.2, 31), (-2.2, 36)], "run")
     pillar = MB().cyl(1.3, 26, (0, 0, 13), mat("pillar", (0.5, 0.45, 0.55)), seg=12).obj("Pillar", coll)
-    key_tr(pillar, 1, loc=(4, 30, 60), rot=(0.1, 0, 0))
-    key_tr(pillar, F("7-7", 0.4), loc=(4, 30, 60), rot=(0.1, 0, 0))
-    key_tr(pillar, F("7-7", 1.5), loc=(2.0, 20, 1.3), rot=(-math.pi / 2, 0, 0.05))
+    key_tr(pillar, 1, loc=(9, 26, 60), rot=(0.1, 0, 0))
+    key_tr(pillar, F("7-7", 0.4), loc=(9, 26, 60), rot=(0.1, 0, 0))
+    key_tr(pillar, F("7-7", 1.5), loc=(3.4, 18, 1.3), rot=(-math.pi / 2, 0, 0.0))
     reflect(pillar, world["mirror"], coll)
     cams.track("7-7", lambda f, k: (run(f) + Vector((0.3, 5, 1.0)) + shake(0.05 if f > F("7-7", 1.5) else 0.01, f),
                                     run(f) + Vector((0, 0, 1.1))), 24)
@@ -167,7 +168,7 @@ def build(tl):
     # 7-8: 建築がせり上がる
     s8, e8 = tl.range("7-8")
     run = run_pair(ren, mio, s8, e8, [(-2.2, 36), (-2.2, 42), (0, 46), (0, 50)], "run")
-    for i, (x, y) in enumerate(((3.5, 40), (-6, 44), (4.5, 47), (-3.5, 50.5), (6, 52))):
+    for i, (x, y) in enumerate(((3.5, 40), (-6, 44), (4.5, 47), (-3.5, 50.5), (7, 61))):
         mb = MB()
         temple(mb, (0, 0, 0), 5, 4, 3, mat("hg_wall", (0.55, 0.5, 0.62)), mat("hg_roof", (0.15, 0.13, 0.22)))
         o = mb.obj(f"Rise{i}", coll, loc=(x, y, -8))
@@ -181,30 +182,41 @@ def build(tl):
     for y in (52,):
         drop_tile(ctx["tiles"][y], F("7-8", 4.0), seed=99)
     s9, _ = tl.range("7-9")
-    ren.key(s9, loc=(-0.2, 53.8, 0), yaw=math.pi, **STAND)
-    ren.key(F("7-9", 0.3), hipz=-0.5, legL=-1.45, legR=-1.45, lean=0.9, armR=(2.6, 0.1), armL=(2.6, 0.1))
-    mio.key(s9, loc=(0.0, 52.6, -1.25), yaw=0, **STAND)
-    mio.key(F("7-9", 0.3), armL=(3.0, 0.1), armR=(3.0, 0.1), head=-0.3)
-    mio.key(F("7-9", 1.5), loc=(0.0, 52.7, -1.1))
-    mio.key(F("7-9", 3.0), loc=(0.0, 53.0, -0.2), lean=0.3)
-    mio.key(F("7-9", 3.8), loc=(0.0, 53.3, 0), lean=0.2, armL=(0, 0.08), armR=(0, 0.08), head=0)
-    ren.key(F("7-9", 3.8), lean=0.2, hipz=-0.2, armR=(0.6, 0.1), armL=(0.6, 0.1))
-    ren.key(F("7-9", 4.6), **STAND)
-    cams.static("7-9", (2.8, 55.6, 1.6), (0, 53.0, 0.1), 35)
+    # 蓮は裂け目の縁に腹ばいになって手を伸ばし、ぶら下がる澪を引き上げる
+    ren.key(s9, loc=(0.0, 55.0, 0), yaw=math.pi, **STAND, blend=0)
+    ren.key(F("7-9", 0.1), pitch=-math.pi / 2, rootz=0.17, armL=(2.35, 0.15), armR=(2.35, 0.15), elbowL=0,
+            elbowR=0, head=-0.6, blend=0)
+    mio.key(s9, loc=(0.0, 52.45, 0), yaw=0, **dict(STAND, rootz=-1.3), blend=0)
+    mio.key(F("7-9", 0.1), armL=(3.0, 0.1), armR=(3.0, 0.1), elbowL=0, elbowR=0, head=-0.3, rootz=-1.3, blend=0)
+    mio.key(F("7-9", 1.5), rootz=-1.15)
+    ren.key(F("7-9", 1.5), armL=(2.2, 0.15), armR=(2.2, 0.15))
+    mio.key(F("7-9", 3.0), loc=(0.0, 52.9, 0), rootz=-0.3, lean=0.3, blend=12)
+    ren.key(F("7-9", 3.0), armL=(1.6, 0.15), armR=(1.6, 0.15), blend=12)
+    mio.key(F("7-9", 3.8), loc=(0.0, 53.5, 0), rootz=0, lean=0.2, armL=(0, 0.08), armR=(0, 0.08), head=0)
+    ren.key(F("7-9", 4.8), pitch=0, rootz=0, hipz=-0.55, legL=1.45, legR=1.45, lean=0.2, head=0,
+            armL=(0.4, 0.2), armR=(0.4, 0.2))
+    cams.static("7-9", (3.8, 53.6, 0.8), (0, 53.4, -0.1), 28)
 
     # 7-10: 次の裂け目 (y=58) で蓮が足を滑らせる
     for y in (58,):
         drop_tile(ctx["tiles"][y], F("7-9", 5.0), seed=98)
     s10, _ = tl.range("7-10")
-    run_pair(ren, mio, s10, F("7-10", 1.2), [(0, 53.4), (0, 56.6)], "run")
-    ren.key(F("7-10", 1.4), loc=(-0.38, 57.4, -0.3), lean=-0.35, armL=(2.2, 1.2), armR=(2.0, 1.0), legL=0.5)
-    ren.key(F("7-10", 2.0), loc=(-0.38, 57.5, -0.7), lean=-0.45)
-    mio.key(F("7-10", 1.6), loc=(0.2, 56.4, 0), yaw=-0.6, lean=-0.35, armL=(1.2, 0.6), armR=(1.0, 0.3))
-    mio.key(F("7-10", 3.0), loc=(0.2, 56.2, 0), lean=-0.5)
-    ren.key(F("7-10", 3.0), loc=(-0.3, 56.6, 0), lean=0.1, armL=(0, 0.08), armR=(1.0, 0.6), legL=0)
-    ren.key(F("7-10", 4.0), **STAND)
-    mio.key(F("7-10", 4.0), **STAND, yaw=0)
-    cams.static("7-10", (-4.4, 56.0, 1.3), (0, 57.0, 0.5), 35)
+    # 澪が先に跳び越え、届かなかった蓮の腕を澪がつかんで引き上げる
+    ren.key(s10, **STAND, blend=0)
+    mio.key(s10, **STAND, blend=0)
+    run_pair(ren, mio, s10, F("7-10", 1.2), [(0, 53.6), (0, 56.6)], "run")
+    mio.move(F("7-10", 1.2), F("7-10", 1.9), [(0.38, 56.35), (0.38, 58.0, 0.6), (0.38, 59.7)], "sprint",
+             extra=lambda f: dict(legL=0.8, legR=-0.5))
+    ren.move(F("7-10", 1.6), F("7-10", 2.3), [(-0.38, 56.6), (-0.38, 57.6, 0.3), (-0.38, 58.4, -0.7)], "sprint",
+             extra=lambda f: dict(armL=(2.6, 0.4), armR=(2.6, 0.4), elbowL=0, elbowR=0))
+    ren.key(F("7-10", 2.5), loc=(-0.38, 58.4, -0.75), yaw=0, armL=(2.8, 0.3), armR=(2.5, 0.2), elbowL=0, elbowR=0,
+            lean=0.3, legL=0, legR=0)
+    mio.key(F("7-10", 2.3), yaw=math.pi, armR=(1.1, 0.25), elbowR=0, lean=0.5)
+    mio.key(F("7-10", 3.4), lean=-0.2, armR=(0.6, 0.2))
+    ren.key(F("7-10", 3.4), loc=(-0.38, 59.3, 0), lean=0.25, armR=(1.0, 0.1), armL=(0.3, 0.1))
+    ren.key(F("7-10", 4.2), **STAND, yaw=0)
+    mio.key(F("7-10", 4.2), **STAND, yaw=0)
+    cams.static("7-10", (-4.2, 58.3, 1.1), (0, 58.6, 0.3), 28)
 
     # 7-11: 翼が迫る
     s11, e11 = tl.range("7-11")
@@ -225,4 +237,4 @@ def build(tl):
     crow.key(F("7-12", 2.2), yaw=math.pi, flap=0.1)
     crow.key(F("7-12", 2.4), peck=0.25)
     crow.key(F("7-12", 3.4), peck=0.0)
-    cams.move("7-12", (2.5, 87, 1.2), (0, GATE_Y, 4.0), (1.8, 90, 1.2), (0, GATE_Y, 4.5), 28)
+    cams.move("7-12", (3.0, 73, 1.5), (0, GATE_Y, 11), (2.2, 77, 1.5), (0, GATE_Y, 11), 28)

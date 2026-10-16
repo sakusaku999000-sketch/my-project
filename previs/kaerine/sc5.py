@@ -4,8 +4,8 @@ import math
 
 from mathutils import Vector
 
-from lib import (Actor, Cams, Crow, butterflies, collection, ease, frames, reflect, reset_scene, ripple, set_sun,
-                 vlerp)
+from lib import (MB, Actor, Cams, Crow, butterflies, collection, ease, frames, mat, reflect, reset_scene, ripple,
+                 set_sun, visible, vlerp)
 from sc1 import REN_C
 from sets import HIGAN_SKY, higan, stepping_tiles
 
@@ -50,11 +50,11 @@ def build(tl):
 
     # 5-1〜5-2: 立ち尽くす
     ren.key(1, loc=(0, 0, 0), yaw=0, head=-0.25)
-    ren.key(F("5-1", 6.0), head=-0.4, lean=-0.08)
+    ren.key(F("5-1", 6.0), head=-0.4, lean=-0.08, blend=0)
     cams.track("5-1", lambda f, k: (vlerp((0.1, -0.7, 1.75), (2, -16, 10), ease(k)),
                                     vlerp((0, 10, 2.5), (0, 60, 14), ease(k))), 24)
     ren.key(F("5-2", 0.5), yaw=0.0)
-    ren.key(F("5-2", 4.5), yaw=0.5)
+    ren.key(F("5-2", 4.5), yaw=0.5, blend=0)
     cams.static("5-2", (1.3, 2.2, 0.35), (0, 0, 1.4), 24)
 
     # 5-3: カラスが舞い降りる
@@ -78,7 +78,7 @@ def build(tl):
     cams.static("5-5", (0.35, 2.15, 0.32), (0, 3.2, 0.3), 50)
 
     # 5-6: 四方から声。回り込み
-    crow.fly(F("5-6", 0.2), F("5-6", 2.0), [land, (2, 6, 4), (5, 14, 10)], scale=1.6)
+    crow.fly(F("5-6", 0.4), F("5-6", 2.2), [land, (2, 6, 4), (5, 14, 10)], scale=1.6)
     for i, t in enumerate((0.8, 2.6, 4.4, 6.2)):
         ren.key(F("5-6", t), yaw=[0.9, -1.2, 2.4, 1.4][i], head=-0.05)
     cams.track("5-6", lambda f, k: (Vector((3.6 * math.sin(k * 5.6), -3.6 * math.cos(k * 5.6), 1.5)),
@@ -89,10 +89,14 @@ def build(tl):
     path = [(1 + i * 1.2, 0.3 * i, 0) for i in range(7)]
     stepping_tiles(coll, path, s7, every=4, f_sink=F("5-7", 2.4), name="WrongTile")
     ren.move(s7, F("5-7", 2.6), [(0, 0), (6.5, 1.8)], "run")
+    lamp = MB().cyl(0.14, 0.3, (0, 0, 0), mat("touch_lantern", (1.0, 0.75, 0.35)), seg=6).obj(
+        "TouchLantern", coll, loc=(7.4, 2.4, 1.0))
+    visible(lamp, None, F("5-7", 3.0))  # 触れた灯籠が蝶になって散る
+    ren.key(F("5-7", 2.7), armR=(1.6, 0.3), elbowR=0.2)
     ren.key(F("5-7", 3.0), loc=(6.6, 1.9, -0.25), hipz=-0.55, legL=1.4, legR=1.4, lean=0.5, head=0.4,
             armL=(1.2, 0.2), armR=(1.2, 0.2))
-    butterflies(coll, (7.6, 2.8, 1.2), F("5-7", 3.2), n=40, dur=1.8, spread=5)
-    cams.track("5-7", lambda f, k: (vlerp((1, -8, 2.5), (5, -6.5, 2.2), ease(k)), vlerp((2, 1, 0.8), (6.5, 2, 0.6), k)),
+    butterflies(coll, (7.4, 2.4, 1.0), F("5-7", 3.0), n=45, dur=1.9, spread=4, size=2.2)
+    cams.track("5-7", lambda f, k: (vlerp((0.5, -4.8, 1.7), (4.6, -3.2, 1.4), ease(k)), vlerp((2, 1, 0.8), (6.6, 2, 0.6), k)),
                28)
 
     # 5-8: トン、トン

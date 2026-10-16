@@ -27,6 +27,7 @@ class Timeline:
             self.start[s["id"]] = f
             f += round(s["dur"] * FPS)
         self.end_frame = f - 1
+        CUTS[:] = sorted(self.start.values())
 
     def f(self, sid, t=0.0):
         return self.start[sid] + round(t * FPS)
@@ -35,6 +36,18 @@ class Timeline:
         s = self.start[sid]
         dur = next(x["dur"] for x in self.shots if x["id"] == sid)
         return s, s + round(dur * FPS) - 1
+
+
+CUTS = []  # 各ショットの開始フレーム。ポーズの保持キーがカットをまたがないようにする
+
+
+def hold_frame(f, blend):
+    """f の blend フレーム前。ただし直前のカットより前には戻さない"""
+    h = f - blend
+    cut = max([c for c in CUTS if c <= f], default=None)
+    if cut is not None and h < cut:
+        h = cut if cut < f else f - 1
+    return h
 
 
 def frames(f0, f1, step=STEP):
@@ -260,10 +273,15 @@ LIMBS = ("armL", "armR", "legL", "legR")
 class Actor:
     """前方 = ローカル +Y。ポーズは各関節の回転 (ラジアン)。
 
-    armL/armR = (前後振り x [+で前へ], 横上げ y [+で外側へ])、legL/legR = 前後振り x
-    lean = 上体の前傾、hipz = 腰の高さオフセット、pitch/roll = 全身の傾き (寝る等)
+    armL/armR = (前後振り x [+で前へ], 横上げ y [+で外側へ])、elbowL/elbowR = 肘の曲げ (+で前腕が前/上へ)
+    legL/legR = 前後振り x、lean = 上体の前傾、hipz = 腰の高さオフセット、pitch/roll = 全身の傾き (寝る等)
     head = うなずき (+ で下を向く)
+
+    key() は前のキーから blend フレーム以上空いていると、直前の姿勢を blend フレーム前に保持してから
+    動かす (キーの間でポーズがじわじわ動き出すのを防ぐ)。ゆっくり動かしたいときは blend=0。
     """
+
+    UPPER, FORE = 0.31, 0.31
 
     def __init__(self, name, coll, color, height=1.0, hair=None, skirt=False):
         self.name = name
@@ -283,27 +301,27 @@ class Actor:
         if skirt:
             MB().cyl(0.26, 0.4, (0, 0, -0.12), body, r2=0.16, seg=12).obj(f"{name}_skirt", coll, self.hips)
         self.j = {}
+        U, Fo = self.UPPER, self.FORE
         for side, x in (("L", -1), ("R", 1)):
             sh = empty(f"{name}_arm{side}", coll, self.hips, (0.22 * x, 0, 0.52))
-            MB().cyl(0.05, 0.62, (0, 0, -0.31), body, seg=8).sphere(0.055, (0, 0, -0.64), dark).obj(
+            MB().cyl(0.052, U, (0, 0, -U / 2), body, seg=8).sphere(0.05, (0, 0, -U), body).obj(
                 f"{name}_armmesh{side}", coll, sh)
+            el = empty(f"{name}_elbow{side}", coll, sh, (0, 0, -U))
+            MB().cyl(0.045, Fo, (0, 0, -Fo / 2), body, seg=8).sphere(0.055, (0, 0, -Fo - 0.03), dark).obj(
+                f"{name}_forearm{side}", coll, el)
             hp = empty(f"{name}_leg{side}", coll, self.hips, (0.1 * x, 0, 0.02))
             MB().cyl(0.07, 0.92, (0, 0, -0.46), dark, r2=0.055, seg=8).obj(f"{name}_legmesh{side}", coll, hp)
-            sh.rotation_mode = hp.rotation_mode = "XYZ"
+            sh.rotation_mode = hp.rotation_mode = el.rotation_mode = "XYZ"
             self.j[f"arm{side}"] = sh
+            self.j[f"elbow{side}"] = el
             self.j[f"leg{side}"] = hp
         self.loc = Vector((0, 0, 0))
         self.yaw = 0.0
-        self.pose = dict(armL=(0, 0.08), armR=(0, 0.08), legL=0.0, legR=0.0,
+        self.last_f = None
+        self.pose = dict(armL=(0, 0.08), armR=(0, 0.08), elbowL=0.15, elbowR=0.15, legL=0.0, legR=0.0,
                          lean=0.0, hipz=0.0, pitch=0.0, roll=0.0, head=0.0, rootz=0.0)
 
-    # 1 フレームに全関節のキーを打つ
-    def key(self, f, loc=None, yaw=None, **pose):
-        if loc is not None:
-            self.loc = Vector(loc) if len(loc) == 3 else Vector((loc[0], loc[1], 0))
-        if yaw is not None:
-            self.yaw = yaw
-        self.pose.update(pose)
+    def _write(self, f):
         p = self.pose
         self.root.location = self.loc + Vector((0, 0, p["rootz"]))
         self.root.rotation_euler = (p["pitch"], p["roll"], self.yaw)
@@ -319,8 +337,26 @@ class Actor:
             ax, ay = p[f"arm{side}"]
             self.j[f"arm{side}"].rotation_euler = (ax, ay if side == "L" else -ay, 0)
             self.j[f"arm{side}"].keyframe_insert("rotation_euler", frame=f)
+            self.j[f"elbow{side}"].rotation_euler = (p[f"elbow{side}"], 0, 0)
+            self.j[f"elbow{side}"].keyframe_insert("rotation_euler", frame=f)
             self.j[f"leg{side}"].rotation_euler = (p[f"leg{side}"], 0, 0)
             self.j[f"leg{side}"].keyframe_insert("rotation_euler", frame=f)
+
+    # 1 フレームに全関節のキーを打つ
+    def key(self, f, loc=None, yaw=None, blend=8, **pose):
+        if loc is not None:
+            new = Vector(loc) if len(loc) == 3 else Vector((loc[0], loc[1], 0))
+            if (new - self.loc).length > 1.5:  # 別の場所への移動はカット扱い (間を補間しない)
+                blend = 1
+        if blend and self.last_f is not None and f - self.last_f > blend:
+            self._write(hold_frame(f, blend))
+        if loc is not None:
+            self.loc = new
+        if yaw is not None:
+            self.yaw = yaw
+        self.pose.update(pose)
+        self._write(f)
+        self.last_f = f if self.last_f is None else max(self.last_f, f)
 
     def hold(self, f0, f1, **pose):
         self.key(f0, **pose)
@@ -336,10 +372,10 @@ class Actor:
         pts = [Vector((p[0], p[1], p[2] if len(p) > 2 else 0)) for p in pts]
         seg = [(pts[i + 1] - pts[i]).length for i in range(len(pts) - 1)]
         total = sum(seg) or 1e-6
-        amp, cadence, lean, bob = {
-            "walk": (0.35, 14, 0.04, 0.025),
-            "run": (0.95, 8, 0.22, 0.06),
-            "sprint": (1.1, 7, 0.32, 0.07),
+        amp, cadence, lean, bob, elbow = {
+            "walk": (0.35, 14, 0.04, 0.025, 0.3),
+            "run": (0.95, 8, 0.22, 0.06, 1.4),
+            "sprint": (1.1, 7, 0.32, 0.07, 1.5),
         }[style]
         if swing is not None:
             amp = swing
@@ -358,14 +394,14 @@ class Actor:
             p, dirv = at(f)
             ph = 2 * math.pi * (f - f0) / (cadence * 2)
             s = math.sin(ph)
-            pose = dict(armL=(-amp * s * 0.9, 0.1), armR=(amp * s * 0.9, 0.1),
+            pose = dict(armL=(-amp * s * 0.8, 0.1), armR=(amp * s * 0.8, 0.1), elbowL=elbow, elbowR=elbow,
                         legL=amp * s * 0.8, legR=-amp * s * 0.8, lean=lean,
                         hipz=bob * abs(math.sin(ph)))
             if extra:
                 pose.update(extra(f))
             yaw = math.atan2(dirv.y, dirv.x) - math.pi / 2 if face and dirv.length > 1e-4 else None
             self.key(f, loc=p, yaw=yaw, **pose)
-        self.key(f1 + 1, armL=(0, 0.08), armR=(0, 0.08), legL=0, legR=0, lean=0, hipz=0)
+        self.key(f1 + 1, armL=(0, 0.08), armR=(0, 0.08), elbowL=0.15, elbowR=0.15, legL=0, legR=0, lean=0, hipz=0)
         return lambda f: at(min(max(f, f0), f1))[0]
 
     def pos(self):
@@ -373,7 +409,33 @@ class Actor:
 
     def hand(self, side, f):
         """f フレームでの手の位置 (ワールド座標)"""
-        return wpos(bpy.data.objects[f"{self.name}_armmesh{side}"], f, (0, 0, -0.64))
+        return wpos(bpy.data.objects[f"{self.name}_forearm{side}"], f, (0, 0, -self.FORE - 0.03))
+
+    def reach(self, f, side, target, **pose):
+        """f フレームで side の手が target (ワールド座標) に届くよう肩と肘を決めてキーを打つ (簡易 2 ボーン IK)。
+        体の他の部分のポーズは pose で先に指定できる"""
+        if pose:
+            self.key(f, **pose)
+        wpos(self.hips, f)
+        hips = self.hips.matrix_world.copy()
+        t = hips.inverted() @ Vector(target) - Vector((0.22 * (1 if side == "R" else -1), 0, 0.52))
+        U, Fo = self.UPPER, self.FORE + 0.03
+        d = min(t.length, U + Fo - 1e-4)
+        e = math.acos(max(-1.0, min(1.0, (d * d - U * U - Fo * Fo) / (2 * U * Fo))))
+        v0 = Vector((0, Fo * math.sin(e), -U - Fo * math.cos(e)))
+        best = None
+        for i in range(73):
+            ax = -1.2 + i * (4.4 / 72)
+            for j in range(49):
+                ay = -1.6 + j * (3.2 / 48)
+                v = Euler((ax, ay, 0)).to_matrix() @ v0
+                err = (v - t).length_squared
+                if best is None or err < best[0]:
+                    best = (err, ax, ay)
+        _, ax, ay = best
+        user_ay = ay if side == "L" else -ay
+        self.key(f, **{f"arm{side}": (ax, user_ay), f"elbow{side}": e})
+        return wpos(bpy.data.objects[f"{self.name}_forearm{side}"], f, (0, 0, -Fo))
 
     def head_at(self, f):
         return wpos(bpy.data.objects[f"{self.name}_head"], f, (0, 0.05, 0.12))
@@ -407,7 +469,13 @@ class Crow:
         self.loc, self.yaw, self.scale, self.flap, self.peck = Vector(), 0.0, 1.0, -1.2, 0.0
         self.root.rotation_mode = "XYZ"
 
-    def key(self, f, loc=None, yaw=None, scale=None, flap=None, peck=None):
+    def key(self, f, loc=None, yaw=None, scale=None, flap=None, peck=None, blend=8):
+        last = getattr(self, "last_f", None)
+        if loc is not None and (Vector(loc) - self.loc).length > 3.0:
+            blend = 1
+        if blend and last is not None and f - last > blend:
+            self._write(hold_frame(f, blend))
+        self.last_f = f if last is None else max(last, f)
         if loc is not None:
             self.loc = Vector(loc)
         if yaw is not None:
@@ -418,6 +486,9 @@ class Crow:
             self.flap = flap
         if peck is not None:
             self.peck = peck
+        self._write(f)
+
+    def _write(self, f):
         key_tr(self.root, f, loc=self.loc, rot=(0, 0, self.yaw), scale=self.scale)
         for w, x in self.wings:
             w.rotation_euler = (0, -x * self.flap, 0)  # flap: +上 / -1.2 畳む
@@ -471,11 +542,12 @@ def ripple(coll, center, f0, dur=1.5, radius=3.0, color=(0.75, 0.85, 1.0), width
     return o
 
 
-def butterflies(coll, center, f0, n=30, dur=2.5, spread=4.0, color=(0.55, 0.8, 1.0), seed=1):
+def butterflies(coll, center, f0, n=30, dur=2.5, spread=4.0, color=(0.55, 0.8, 1.0), seed=1, size=1.0):
     rng = random.Random(seed)
     m = mat("butterfly", color)
     for i in range(n):
-        b = MB().box((0.14, 0.08, 0.005), (0.07, 0, 0), m).box((0.14, 0.08, 0.005), (-0.07, 0, 0), m) \
+        w, d = 0.14 * size, 0.08 * size
+        b = MB().box((w, d, 0.005), (w / 2, 0, 0), m).box((w, d, 0.005), (-w / 2, 0, 0), m) \
             .obj("Butterfly", coll, loc=center)
         d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(0.3, 1.5))).normalized()
         end = Vector(center) + d * spread * rng.uniform(0.5, 1.0)
@@ -656,12 +728,15 @@ def temple(mb, loc, w, d, h, wall, roof_m, rot=(0, 0, 0), flip=False):
     mb.box((w * 0.9, d * 0.9, h * 0.35), (x, y, z + s * h * 1.25), roof_m, rot=rot)
 
 
-def lanterns(coll, n, area, zrange, seed=3, color=(1.0, 0.72, 0.3), size=0.25, name="Lanterns"):
+def lanterns(coll, n, area, zrange, seed=3, color=(1.0, 0.72, 0.3), size=0.25, name="Lanterns", skip=None):
+    """浮かぶ灯籠。skip(p) が True の位置には置かない (人物やカメラの通り道を空ける)"""
     rng = random.Random(seed)
     mb = MB()
     m = mat(name, color)
     for _ in range(n):
         p = (rng.uniform(*area[0]), rng.uniform(*area[1]), rng.uniform(*zrange))
+        if skip and skip(p):
+            continue
         s = size * rng.uniform(0.7, 1.3)
         mb.cyl(s * 0.5, s, p, m, seg=6)
     return mb.obj(name, coll)

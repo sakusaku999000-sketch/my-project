@@ -24,6 +24,10 @@ def room(coll, altar=False, night=(0.06, 0.08, 0.16)):
     mb.box((0.1, 1.6, 0.6), (-3, 0.6, 2.3), wall)
     mb.box((0.35, 1.7, 0.06), (-2.9, 0.6, 0.88), wood)  # 窓台
     mb.box((0.05, 0.05, 1.1), (-3, 0.6, 1.45), wood)  # 窓枠
+    mb.box((0.05, 1.6, 0.05), (-3, 0.6, 1.45), wood)
+    for yy in (-0.2, 1.4):
+        mb.box((0.08, 0.06, 1.1), (-3, yy, 1.45), wood)
+    mb.box((0.08, 1.6, 0.06), (-3, 0.6, 2.0), wood)
     mb.box((0.1, 40, 30), (-25, 0, 5), mat("night", night))  # 夜空
     for i in range(14):  # 外の街明かり
         rng = random.Random(i)
@@ -39,6 +43,10 @@ def room(coll, altar=False, night=(0.06, 0.08, 0.16)):
         mb.box((1.4, 0.5, 0.75), (0.6, 2.2, 0.37), wood)  # 祭壇台
         mb.box((0.36, 0.04, 0.46), (0.6, 2.25, 1.0), mat("frame", (0.1, 0.1, 0.1)))  # 遺影
         mb.box((0.28, 0.03, 0.36), (0.6, 2.22, 1.0), mat("photo", (0.85, 0.75, 0.68)))
+        # 遺影の中の澪 (肩・顔・髪)
+        mb.box((0.2, 0.01, 0.07), (0.6, 2.2, 0.86), mat("photo_cloth", (0.35, 0.33, 0.36)))
+        mb.sphere(0.055, (0.6, 2.2, 1.0), mat("photo_face", (0.95, 0.85, 0.75)), scale=(0.9, 0.2, 1.1), sub=2)
+        mb.sphere(0.065, (0.6, 2.203, 1.03), mat("photo_hair", (0.2, 0.12, 0.08)), scale=(1.0, 0.15, 1.0), sub=2)
         for x in (0.1, 1.1):
             mb.cyl(0.07, 0.3, (x, 2.2, 0.9), mat("vase", (0.3, 0.3, 0.35)))
             for k in range(5):
@@ -110,9 +118,11 @@ def higan(coll, center=(0, 0), seed=21, gate=True, n_buildings=26):
             temple(mb, (x, y, z), rng.uniform(6, 14), rng.uniform(5, 10), rng.uniform(3, 6), wall, roof,
                    rot=(0, 0, rng.uniform(0, 3)), flip=True)
     static.append(mb.obj("FloatingCity", coll))
-    static.append(lanterns(coll, 260, ((cx - 60, cx + 60), (cy - 20, cy + 120)), (1.5, 30), seed=seed))
+    # 人物が立つ・走る帯 (x≒cx, y=cy-20〜cy+120) とカメラの周りには低い灯籠を置かない
+    static.append(lanterns(coll, 260, ((cx - 60, cx + 60), (cy - 20, cy + 120)), (1.5, 30), seed=seed,
+                           skip=lambda p: p[2] < 6 and abs(p[0] - cx) < 10))
     static.append(lanterns(coll, 80, ((cx - 15, cx + 15), (cy - 10, cy + 40)), (0.4, 3), seed=seed + 1, size=0.2,
-                           name="LanternsLow"))
+                           name="LanternsLow", skip=lambda p: abs(p[0] - cx) < 9))
     # 青い彼岸花の群生
     mb = MB()
     blue = mat("lily_blue", (0.25, 0.5, 1.0))
