@@ -156,7 +156,6 @@ def active_line(shot, t):
 
 def overlay(img, data, shot, t_shot, t_global):
     W, H = img.size
-    bar = round((H - W / 2.39) / 2)
     im = img.convert("RGB")
     d = ImageDraw.Draw(im, "RGBA")
     # フェード
@@ -175,26 +174,30 @@ def overlay(img, data, shot, t_shot, t_global):
             f = font(int(H * 0.09), bold=True)
             tw = d.textlength(card, font=f)
             d.text(((W - tw) / 2, H / 2 - H * 0.06), card, font=f, fill=(255, 255, 255))
-    # 黒帯
-    d.rectangle((0, 0, W, bar), fill=(0, 0, 0, 255))
-    d.rectangle((0, H - bar, W, H), fill=(0, 0, 0, 255))
+    # 16:9 の画面全体を見せ、情報は半透明の帯に載せる
     small = font(max(11, int(H * 0.03)))
+    strip = int(H * 0.065)
+    d.rectangle((0, 0, W, strip), fill=(0, 0, 0, 120))
     head = f"SC{data['scene']} {data['title']}   |   {shot['id']}   {shot.get('size', '')}   {shot.get('move', '')}"
-    d.text((12, bar * 0.3), head, font=small, fill=(210, 210, 210))
+    ty = (strip - small.size) / 2 - 1
+    d.text((12, ty), head, font=small, fill=(225, 225, 225))
     tc = fmt_time(t_global)
-    d.text((W - 12 - d.textlength(tc, font=small), bar * 0.3), tc, font=small, fill=(210, 210, 210))
+    d.text((W - 12 - d.textlength(tc, font=small), ty), tc, font=small, fill=(225, 225, 225))
     if shot.get("silent"):
         tag = "（無音）"
-        d.text((W - 12 - d.textlength(tag, font=small), H - bar + bar * 0.3), tag, font=small, fill=(160, 160, 160))
+        d.text((W - 12 - d.textlength(tag, font=small), H - strip), tag, font=small, fill=(230, 230, 230),
+               stroke_width=2, stroke_fill=(0, 0, 0))
     line = active_line(shot, t_shot)
     if line:
         who, text = line
         s = f"{who}「{text}」" if who not in ("声", "電話", "澪の声") else f"（{who}）「{text}」"
         f = font(int(H * 0.042))
-        while d.textlength(s, font=f) > W - 40 and f.size > 10:
+        while d.textlength(s, font=f) > W - 60 and f.size > 10:
             f = font(f.size - 1)
         tw = d.textlength(s, font=f)
-        d.text(((W - tw) / 2, H - bar + (bar - f.size) / 2 - 2), s, font=f, fill=(255, 255, 255))
+        x, y = (W - tw) / 2, H - f.size * 2.2
+        d.rectangle((x - 12, y - 6, x + tw + 12, y + f.size + 10), fill=(0, 0, 0, 140))
+        d.text((x, y), s, font=f, fill=(255, 255, 255), stroke_width=1, stroke_fill=(0, 0, 0))
     return im
 
 

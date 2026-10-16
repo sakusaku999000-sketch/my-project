@@ -65,10 +65,6 @@ def scene_sheet(data, stills, out, t0):
         p = os.path.join(stills, f"{s['id']}.png")
         if os.path.exists(p):
             th = Image.open(p).convert("RGB").resize((TH_W, TH_H))
-            tdraw = ImageDraw.Draw(th)
-            bar = round((TH_H - TH_W / 2.39) / 2)
-            tdraw.rectangle((0, 0, TH_W, bar), fill=(0, 0, 0))
-            tdraw.rectangle((0, TH_H - bar, TH_W, TH_H), fill=(0, 0, 0))
             im.paste(th, (PAD, y))
         d.rectangle((PAD, y, PAD + TH_W, y + TH_H), outline=(60, 60, 60), width=2)
         ty = y + 4
